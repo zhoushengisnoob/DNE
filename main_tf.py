@@ -32,7 +32,7 @@ logging.basicConfig(filename=f"dne.log", filemode="a",
                     format="%(asctime)s %(name)s:%(levelname)s:%(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
 
-def build_model(node_num,sender_receiver_dim=128,):
+def build_model(node_num,sender_receiver_dim=128,lr=0.0001):
 
     sender_input=Input(shape=(1,))
     receiver_input=Input(shape=(1,))
@@ -60,7 +60,7 @@ def build_model(node_num,sender_receiver_dim=128,):
     final_model=Model([sender_input,receiver_input],[result])
     final_model.summary()
 
-    final_model.compile(optimizer=Adam(lr=0.0001),loss='binary_crossentropy',metrics=['acc'])
+    final_model.compile(optimizer=Adam(lr=lr),loss='binary_crossentropy',metrics=['acc'])
 
     return final_model,sender_model,receiver_model
 
@@ -74,7 +74,11 @@ if __name__=='__main__':
     parser.add_argument('--ensure_reach',action='store_true',default=False,help='make sure two points are accessible if they are accessible before split dataset ')
     parser.add_argument('--use_weight',action='store_true',default=False)
     parser.add_argument('--bias',type=float,default=0.5,help='')
+    parser.add_argument('--lr', type=float, default=0.0001, help='')
+    parser.add_argument('--epoch', type=int, default=10, help='')
+    parser.add_argument('--batch_size', type=int, default=2048*5, help='')
     parser.add_argument('--seed',type=int,default=0,help='')
+    parser.add_argument('--dim', type=int, default=128, help='emb dim')
 
     parser.set_defaults(dataset='pubmed',
                         task='link',
@@ -128,11 +132,11 @@ if __name__=='__main__':
     print('sample time',datetime.now()-start_sample_time)
 
     #build model and train
-    score_model, sender_model, receiver_model = build_model(node_num)
+    score_model, sender_model, receiver_model = build_model(node_num,args.dim,args.lr)
     score_model.fit([train_edge['sender'].values, train_edge['receiver'].values],
                     [train_edge['score'].values],
-                    batch_size=2048 * 5,
-                    epochs=10,
+                    batch_size=args.batch_size,
+                    epochs=args.epoch,
                     shuffle=True,
                     sample_weight=[train_edge['weight'].values],
                     verbose=2
